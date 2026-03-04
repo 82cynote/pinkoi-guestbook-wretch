@@ -118,11 +118,10 @@ export default function BarrageLayer({ messages, paused }: Props) {
         const topPx = Math.floor(Math.random() * Math.max(1, h - 40));
 
         // BM3：M 速度（仍有快慢差，但集中在中速）
-        // 9–12 秒：你如果覺得太慢或太快，我們再微調這兩個數字
-        const durationMs = Math.floor(9000 + Math.random() * 3000);
+        const durationMs = Math.floor(10000 + Math.random() * 3500);
 
         // 仍保留大小差
-        const fontSizePx = clamp(Math.floor(14 + Math.random() * 10), 14, 24);
+        const fontSizePx = clamp(Math.floor(20 + Math.random() * 18), 28, 48);
 
         next.push({
           id: `${picked.id}_${now}_${Math.random().toString(36).slice(2)}`,
@@ -146,7 +145,7 @@ export default function BarrageLayer({ messages, paused }: Props) {
       <style>{`
         @keyframes guestbook-move-left {
           0% { transform: translateX(110vw); }
-          100% { transform: translateX(-120vw); }
+          100% { transform: translateX(calc(-100% - 120vw)); }
         }
       `}</style>
 
@@ -159,18 +158,8 @@ export default function BarrageLayer({ messages, paused }: Props) {
             fontSize: `${it.fontSizePx}px`,
             animation: `guestbook-move-left ${it.durationMs}ms linear 0ms 1 both`,
             color: it.color,
-            WebkitTextStroke: '2px rgba(0,0,0,0.9)',
-            textShadow: [
-              '2px 0 0 rgba(0,0,0,0.9)',
-              '-2px 0 0 rgba(0,0,0,0.9)',
-              '0 2px 0 rgba(0,0,0,0.9)',
-              '0 -2px 0 rgba(0,0,0,0.9)',
-              '1.5px 1.5px 0 rgba(0,0,0,0.9)',
-              '-1.5px 1.5px 0 rgba(0,0,0,0.9)',
-              '1.5px -1.5px 0 rgba(0,0,0,0.9)',
-              '-1.5px -1.5px 0 rgba(0,0,0,0.9)',
-              '0 2px 10px rgba(0,0,0,0.35)',
-            ].join(', '),
+            WebkitTextStroke: '1.5px rgba(0,0,0,0.75)',
+            textShadow: '0 2px 10px rgba(0,0,0,0.35)',
             fontWeight: 600,
             letterSpacing: '0.2px',
           }}
