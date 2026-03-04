@@ -11,7 +11,7 @@ export default function MessageForm({ onSendMessage }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const authorLeft = useMemo(() => 20 - author.length, [author.length]);
-  const contentLeft = useMemo(() => 200 - content.length, [content.length]);
+  const contentLeft = useMemo(() => 50 - content.length, [content.length]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,8 +29,8 @@ export default function MessageForm({ onSendMessage }: Props) {
       return;
     }
 
-    if (c.length > 200) {
-      setError('留言最多 200 字');
+    if (c.length > 50) {
+      setError('留言最多 50 字');
       return;
     }
 
@@ -53,7 +53,7 @@ export default function MessageForm({ onSendMessage }: Props) {
           <label htmlFor="author" className="block text-sm font-medium text-gray-700 mb-1">
             暱稱
           </label>
-          <span className={"text-xs mb-1 " + (authorLeft < 0 ? 'text-red-500' : 'text-gray-400')}>
+          <span className={'text-xs mb-1 ' + (authorLeft < 0 ? 'text-red-500' : 'text-gray-400')}>
             {authorLeft}
           </span>
         </div>
@@ -63,7 +63,7 @@ export default function MessageForm({ onSendMessage }: Props) {
           value={author}
           onChange={(e) => setAuthor(e.target.value)}
           placeholder="請輸入暱稱"
-          maxLength={40}
+          maxLength={20}
           className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200"
           disabled={isSending}
         />
@@ -74,7 +74,7 @@ export default function MessageForm({ onSendMessage }: Props) {
           <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
             留言
           </label>
-          <span className={"text-xs mb-1 " + (contentLeft < 0 ? 'text-red-500' : 'text-gray-400')}>
+          <span className={'text-xs mb-1 ' + (contentLeft < 0 ? 'text-red-500' : 'text-gray-400')}>
             {contentLeft}
           </span>
         </div>
@@ -84,7 +84,7 @@ export default function MessageForm({ onSendMessage }: Props) {
           onChange={(e) => setContent(e.target.value)}
           placeholder="寫下想說的話..."
           rows={4}
-          maxLength={400}
+          maxLength={50}
           className="block w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200"
           disabled={isSending}
         />
@@ -103,9 +103,7 @@ export default function MessageForm({ onSendMessage }: Props) {
         {isSending ? '送出中...' : '送出留言'}
       </button>
 
-      <p className="text-xs text-gray-400 leading-relaxed">
-        若你還沒接 Google Sheet，畫面會先用本機儲存模式運作。
-      </p>
+      <p className="text-xs text-gray-400 leading-relaxed">若你還沒接 Google Sheet，畫面會先用本機儲存模式運作。</p>
     </form>
   );
 }
