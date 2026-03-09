@@ -8,7 +8,7 @@ type BarrageItem = {
   durationMs: number;
   fontSizePx: number;
   color: string;
-  sourceId: string; // 來自哪一則留言（用來避免連續重複）
+  sourceId: string;
 };
 
 type Props = {
@@ -21,7 +21,6 @@ function clamp(n: number, min: number, max: number) {
 }
 
 function hashString(input: string): number {
-  // 簡單穩定的 hash（同暱稱會得到同一個值）
   let h = 5381;
   for (let i = 0; i < input.length; i++) {
     h = (h * 33) ^ input.charCodeAt(i);
@@ -30,16 +29,16 @@ function hashString(input: string): number {
 }
 
 const AUTHOR_PALETTE = [
-  'rgba(255, 179, 186, 0.96)', // 粉紅
-  'rgba(255, 223, 186, 0.96)', // 杏桃
-  'rgba(255, 255, 186, 0.96)', // 淡黃
-  'rgba(186, 255, 201, 0.96)', // 淡綠
-  'rgba(186, 225, 255, 0.96)', // 淡藍
-  'rgba(214, 186, 255, 0.96)', // 淡紫
-  'rgba(255, 186, 247, 0.96)', // 玫粉
-  'rgba(186, 255, 250, 0.96)', // 薄荷
-  'rgba(255, 209, 220, 0.96)', // 櫻花
-  'rgba(204, 255, 204, 0.96)', // 草綠
+  'rgba(255, 179, 186, 0.96)',
+  'rgba(255, 223, 186, 0.96)',
+  'rgba(255, 255, 186, 0.96)',
+  'rgba(186, 255, 201, 0.96)',
+  'rgba(186, 225, 255, 0.96)',
+  'rgba(214, 186, 255, 0.96)',
+  'rgba(255, 186, 247, 0.96)',
+  'rgba(186, 255, 250, 0.96)',
+  'rgba(255, 209, 220, 0.96)',
+  'rgba(204, 255, 204, 0.96)',
 ];
 
 function colorForAuthor(author: string): string {
@@ -48,7 +47,6 @@ function colorForAuthor(author: string): string {
 }
 
 function isInActiveWindow(messageTimestamp: number, now: number): boolean {
-  // 10 分鐘可出現、2 分鐘休息（以留言 timestamp 為週期起點）
   const activeMs = 10 * 60 * 1000;
   const restMs = 2 * 60 * 1000;
   const cycleMs = activeMs + restMs;
@@ -56,7 +54,6 @@ function isInActiveWindow(messageTimestamp: number, now: number): boolean {
   if (!Number.isFinite(messageTimestamp) || messageTimestamp <= 0) return true;
   const elapsed = now - messageTimestamp;
 
-  // 使用者裝置時間怪怪的情況，先讓它可出現
   if (elapsed < 0) return true;
 
   const phase = elapsed % cycleMs;
@@ -89,9 +86,8 @@ export default function BarrageLayer({ messages, paused }: Props) {
     if (paused) return;
     if (pool.length === 0) return;
 
-    // BM3：B 密度（先沿用你現有參數）
-    const maxOnScreen = 17;
-    const spawnEveryMs = 1850;
+    const maxOnScreen = 11;
+    const spawnEveryMs = 2500;
 
     const tick = window.setInterval(() => {
       setItems((prev) => {
@@ -101,12 +97,10 @@ export default function BarrageLayer({ messages, paused }: Props) {
         const eligible = pool.filter((m) => isInActiveWindow(m.timestamp, now));
         if (eligible.length === 0) return next;
 
-        // 用 seed 讓抽樣更穩定一點
         seedRef.current += 1;
         const r = (seedRef.current * 9301 + 49297) % 233280;
         let idx = r % eligible.length;
 
-        // 避免「同一則連續兩次」抽到
         if (eligible.length > 1 && eligible[idx].id === lastSourceIdRef.current) {
           idx = (idx + 1) % eligible.length;
         }
@@ -117,11 +111,8 @@ export default function BarrageLayer({ messages, paused }: Props) {
         const h = window.innerHeight || 800;
         const topPx = Math.floor(Math.random() * Math.max(1, h - 40));
 
-        // BM3：M 速度（仍有快慢差，但集中在中速）
-        const durationMs = Math.floor(10000 + Math.random() * 3500);
-
-        // 仍保留大小差
-        const fontSizePx = clamp(Math.floor(20 + Math.random() * 18), 28, 48);
+        const durationMs = Math.floor(15000 + Math.random() * 3000);
+        const fontSizePx = clamp(Math.floor(36 + Math.random() * 19), 36, 54);
 
         next.push({
           id: `${picked.id}_${now}_${Math.random().toString(36).slice(2)}`,

@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 
 type Props = {
   intervalMs?: number;
+  fullScreen?: boolean;
 };
 
-export default function HeroCarousel({ intervalMs = 4500 }: Props) {
+export default function HeroCarousel({ intervalMs = 4500, fullScreen = false }: Props) {
   const [slides, setSlides] = useState<string[]>([]);
   const [index, setIndex] = useState(0);
 
@@ -45,13 +46,22 @@ export default function HeroCarousel({ intervalMs = 4500 }: Props) {
 
   const current = safeSlides[index % safeSlides.length];
 
+  const sectionClass = fullScreen
+  ? 'relative w-screen h-[100dvh] overflow-hidden bg-black'
+  : 'relative w-full overflow-hidden rounded-3xl bg-gray-900 shadow-sm border border-gray-100';
+
+  const frameClass = fullScreen ? 'relative w-full h-full' : 'relative h-[260px] sm:h-[340px]';
+
   return (
-    <section className="relative w-full overflow-hidden rounded-3xl bg-gray-900 shadow-sm border border-gray-100">
-      <div className="relative h-[260px] sm:h-[340px]">
+    <section className={sectionClass}>
+      <div className={frameClass}>
         <img
           src={current}
           alt="輪播圖片"
-          className="absolute inset-0 h-full w-full object-cover"
+          className={
+            'absolute inset-0 h-full w-full ' +
+            (fullScreen ? 'object-contain' : 'object-cover')
+          }
           draggable={false}
         />
       </div>

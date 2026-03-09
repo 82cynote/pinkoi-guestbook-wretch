@@ -103,7 +103,7 @@ export default function MessageForm({ onSendMessage }: Props) {
         {isSending ? '送出中...' : '送出留言'}
       </button>
 
-      <p className="text-xs text-gray-400 leading-relaxed">若你還沒接 Google Sheet，畫面會先用本機儲存模式運作。</p>
+      <p className="text-xs text-gray-400 leading-relaxed"></p>
     </form>
   );
 }
