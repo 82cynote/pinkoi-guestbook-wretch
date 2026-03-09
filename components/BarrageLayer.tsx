@@ -8,7 +8,7 @@ type BarrageItem = {
   durationMs: number;
   fontSizePx: number;
   color: string;
-  sourceId: string;
+  sourceId: string; // 來自哪一則留言
 };
 
 type Props = {
@@ -20,40 +20,44 @@ function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
-function hashString(input: string): number {
-  let h = 5381;
-  for (let i = 0; i < input.length; i++) {
-    h = (h * 33) ^ input.charCodeAt(i);
-  }
-  return h >>> 0;
-}
+const BARRAGE_PALETTE = [
+  '#003354',
+  '#EE847D',
+  '#5FC3E1',
+  '#73D269',
+  '#FAF050',
+  '#6941D2',
+  '#9BFAFA',
+  '#FFF57D',
+  '#FFE1D7',
+  '#6EE1D2',
+  '#196EFA',
+  '#FA6496',
+  '#BEFA46',
+  '#551EE1',
+  '#FA6946',
+  '#000000',
+  '#FAFADC',
+  '#C3B496',
+  '#D2D2C8',
+  '#828282',
+] as const;
 
-const AUTHOR_PALETTE = [
-  'rgba(255, 179, 186, 0.96)',
-  'rgba(255, 223, 186, 0.96)',
-  'rgba(255, 255, 186, 0.96)',
-  'rgba(186, 255, 201, 0.96)',
-  'rgba(186, 225, 255, 0.96)',
-  'rgba(214, 186, 255, 0.96)',
-  'rgba(255, 186, 247, 0.96)',
-  'rgba(186, 255, 250, 0.96)',
-  'rgba(255, 209, 220, 0.96)',
-  'rgba(204, 255, 204, 0.96)',
-];
-
-function colorForAuthor(author: string): string {
-  const idx = hashString(author.trim() || 'anonymous') % AUTHOR_PALETTE.length;
-  return AUTHOR_PALETTE[idx];
+function randomPaletteColor(): string {
+  const idx = Math.floor(Math.random() * BARRAGE_PALETTE.length);
+  return BARRAGE_PALETTE[idx];
 }
 
 function isInActiveWindow(messageTimestamp: number, now: number): boolean {
-  const activeMs = 10 * 60 * 1000;
-  const restMs = 2 * 60 * 1000;
+  // ✅ 7 分鐘可出現、3 分鐘休息（以留言 timestamp 為週期起點；每則留言各自計算）
+  const activeMs = 7 * 60 * 1000;
+  const restMs = 3 * 60 * 1000;
   const cycleMs = activeMs + restMs;
 
   if (!Number.isFinite(messageTimestamp) || messageTimestamp <= 0) return true;
   const elapsed = now - messageTimestamp;
 
+  // 使用者裝置時間怪怪的情況，先讓它可出現
   if (elapsed < 0) return true;
 
   const phase = elapsed % cycleMs;
@@ -62,57 +66,81 @@ function isInActiveWindow(messageTimestamp: number, now: number): boolean {
 
 export default function BarrageLayer({ messages, paused }: Props) {
   const [items, setItems] = useState<BarrageItem[]>([]);
-  const seedRef = useRef(0);
+
+  // ✅ 輪流用指標（round-robin cursor）
+  const cursorRef = useRef(0);
+
+  // 避免「同一則連續兩次」出現（有多則 eligible 時才避免）
   const lastSourceIdRef = useRef<string>('');
 
   const pool = useMemo(() => {
     return messages
       .map((m) => ({
         id: m.id,
-        author: m.author || '',
-        content: m.content || '',
+        author: (m.author || '').trim(),
+        content: String(m.content || '').trim(),
         timestamp: Number(m.timestamp || 0),
       }))
       .map((m) => ({
         id: m.id,
-        author: m.author.trim(),
+        author: m.author,
         timestamp: m.timestamp,
-        text: `${m.author.trim()}：${String(m.content).trim()}`,
+        text: `${m.author}：${m.content}`,
       }))
-      .filter((x) => x.text.trim().length > 2);
+      .filter((x) => x.text.trim().length > 2)
+      .sort((a, b) => (a.timestamp - b.timestamp) || a.id.localeCompare(b.id));
   }, [messages]);
 
   useEffect(() => {
     if (paused) return;
     if (pool.length === 0) return;
 
-    const maxOnScreen = 11;
-    const spawnEveryMs = 2500;
+    const maxOnScreen = 17;
+    const spawnEveryMs = 1850;
 
     const tick = window.setInterval(() => {
       setItems((prev) => {
         const next = prev.slice(-maxOnScreen);
 
         const now = Date.now();
-        const eligible = pool.filter((m) => isInActiveWindow(m.timestamp, now));
-        if (eligible.length === 0) return next;
 
-        seedRef.current += 1;
-        const r = (seedRef.current * 9301 + 49297) % 233280;
-        let idx = r % eligible.length;
-
-        if (eligible.length > 1 && eligible[idx].id === lastSourceIdRef.current) {
-          idx = (idx + 1) % eligible.length;
+        // 計算目前可出現的留言數（決定要不要避免連續重複）
+        let eligibleCount = 0;
+        for (const m of pool) {
+          if (isInActiveWindow(m.timestamp, now)) eligibleCount += 1;
         }
+        if (eligibleCount === 0) return next;
 
-        const picked = eligible[idx];
+        const n = pool.length;
+        const start = ((cursorRef.current % n) + n) % n;
+
+        // 掃描 pool 找下一則 eligible（輪流）
+        const pickNext = (avoidLast: boolean) => {
+          for (let step = 0; step < n; step += 1) {
+            const idx = (start + step) % n;
+            const m = pool[idx];
+
+            if (!isInActiveWindow(m.timestamp, now)) continue;
+            if (avoidLast && eligibleCount > 1 && m.id === lastSourceIdRef.current) continue;
+
+            // 下一次從它後面接著輪
+            cursorRef.current = (idx + 1) % n;
+            return m;
+          }
+          return null;
+        };
+
+        // 先嘗試避開連續同一則；若找不到，再允許同一則
+        const picked = pickNext(true) ?? pickNext(false);
+        if (!picked) return next;
+
         lastSourceIdRef.current = picked.id;
 
         const h = window.innerHeight || 800;
         const topPx = Math.floor(Math.random() * Math.max(1, h - 40));
 
-        const durationMs = Math.floor(15000 + Math.random() * 3000);
-        const fontSizePx = clamp(Math.floor(36 + Math.random() * 19), 36, 54);
+        const durationMs = Math.floor(10000 + Math.random() * 3500);
+        const fontSizePx = clamp(Math.floor(20 + Math.random() * 18), 28, 48);
 
         next.push({
           id: `${picked.id}_${now}_${Math.random().toString(36).slice(2)}`,
@@ -121,7 +149,7 @@ export default function BarrageLayer({ messages, paused }: Props) {
           topPx,
           durationMs,
           fontSizePx,
-          color: colorForAuthor(picked.author),
+          color: randomPaletteColor(), // ✅ 每次生成都隨機挑色
         });
 
         return next;
@@ -149,10 +177,9 @@ export default function BarrageLayer({ messages, paused }: Props) {
             fontSize: `${it.fontSizePx}px`,
             animation: `guestbook-move-left ${it.durationMs}ms linear 0ms 1 both`,
             color: it.color,
-            WebkitTextStroke: '1.5px rgba(0,0,0,0.75)',
-            textShadow: '0 2px 10px rgba(0,0,0,0.35)',
+            textShadow: '0 2px 6px rgba(0,0,0,0.55)',
             fontWeight: 600,
-            letterSpacing: '0.2px',
+            letterSpacing: '0px',
           }}
         >
           {it.text}
