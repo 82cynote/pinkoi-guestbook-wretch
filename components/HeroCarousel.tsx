@@ -5,7 +5,7 @@ type Props = {
   fullScreen?: boolean;
 };
 
-export default function HeroCarousel({ intervalMs = 4500, fullScreen = false }: Props) {
+export default function HeroCarousel({ intervalMs = 7000, fullScreen = false }: Props) {
   const [slides, setSlides] = useState<string[]>([]);
   const [index, setIndex] = useState(0);
 
