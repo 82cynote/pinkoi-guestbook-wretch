@@ -132,10 +132,10 @@ export default function BarrageLayer({ messages, paused }: Props) {
         lastSourceIdRef.current = picked.id;
 
         const h = window.innerHeight || 800;
-        const topPx = Math.floor(Math.random() * Math.max(1, h - 40));
-
         const durationMs = Math.floor(10000 + Math.random() * 3500);
-        const fontSizePx = Math.floor(48 + Math.random() * 18);
+        const fontSizePx = Math.floor(64 + Math.random() * 24);
+        const maxTop = Math.max(0, h - fontSizePx - 20);
+        const topPx = Math.floor(Math.random() * Math.max(1, maxTop));
 
         next.push({
           id: `${picked.id}_${Date.now()}_${Math.random().toString(36).slice(2)}`,

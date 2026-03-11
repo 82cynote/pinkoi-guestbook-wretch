@@ -84,7 +84,7 @@ export default function App() {
       <div
         className="fixed inset-0 -z-10"
         style={{
-          backgroundImage: 'url(/slides/bg.png)',
+          backgroundImage: 'url(./slides/bg.png)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
