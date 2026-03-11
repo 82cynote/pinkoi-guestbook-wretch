@@ -16,9 +16,6 @@ type Props = {
   paused: boolean;
 };
 
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
-}
 
 const BARRAGE_PALETTE = [
   '#003354',
@@ -98,13 +95,14 @@ export default function BarrageLayer({ messages, paused }: Props) {
     const maxOnScreen = 17;
     const spawnEveryMs = 1850;
 
-    const tick = window.setInterval(() => {
+    let tickId: number | null = null;
+
+    const spawnTick = () => {
       setItems((prev) => {
         const next = prev.slice(-maxOnScreen);
 
         const now = Date.now();
 
-        // 計算目前可出現的留言數（決定要不要避免連續重複）
         let eligibleCount = 0;
         for (const m of pool) {
           if (isInActiveWindow(m.timestamp, now)) eligibleCount += 1;
@@ -114,7 +112,6 @@ export default function BarrageLayer({ messages, paused }: Props) {
         const n = pool.length;
         const start = ((cursorRef.current % n) + n) % n;
 
-        // 掃描 pool 找下一則 eligible（輪流）
         const pickNext = (avoidLast: boolean) => {
           for (let step = 0; step < n; step += 1) {
             const idx = (start + step) % n;
@@ -123,14 +120,12 @@ export default function BarrageLayer({ messages, paused }: Props) {
             if (!isInActiveWindow(m.timestamp, now)) continue;
             if (avoidLast && eligibleCount > 1 && m.id === lastSourceIdRef.current) continue;
 
-            // 下一次從它後面接著輪
             cursorRef.current = (idx + 1) % n;
             return m;
           }
           return null;
         };
 
-        // 先嘗試避開連續同一則；若找不到，再允許同一則
         const picked = pickNext(true) ?? pickNext(false);
         if (!picked) return next;
 
@@ -140,23 +135,55 @@ export default function BarrageLayer({ messages, paused }: Props) {
         const topPx = Math.floor(Math.random() * Math.max(1, h - 40));
 
         const durationMs = Math.floor(10000 + Math.random() * 3500);
-        const fontSizePx = clamp(Math.floor(20 + Math.random() * 18), 28, 48);
+        const fontSizePx = Math.floor(48 + Math.random() * 18);
 
         next.push({
-          id: `${picked.id}_${now}_${Math.random().toString(36).slice(2)}`,
+          id: `${picked.id}_${Date.now()}_${Math.random().toString(36).slice(2)}`,
           sourceId: picked.id,
           text: picked.text,
           topPx,
           durationMs,
           fontSizePx,
-          color: randomPaletteColor(), // ✅ 每次生成都隨機挑色
+          color: randomPaletteColor(),
         });
 
         return next;
       });
-    }, spawnEveryMs);
+    };
 
-    return () => window.clearInterval(tick);
+    const startInterval = () => {
+      if (tickId !== null) return;
+      tickId = window.setInterval(spawnTick, spawnEveryMs);
+    };
+
+    const stopInterval = () => {
+      if (tickId !== null) {
+        window.clearInterval(tickId);
+        tickId = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // 切到背景：停止 spawn，避免累積
+        stopInterval();
+      } else {
+        // 回到前景：清除動畫已凍結的舊 items，重新乾淨地開始
+        setItems([]);
+        startInterval();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    if (!document.hidden) {
+      startInterval();
+    }
+
+    return () => {
+      stopInterval();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [pool, paused]);
 
   return (
