@@ -132,7 +132,7 @@ export default function BarrageLayer({ messages, paused }: Props) {
         lastSourceIdRef.current = picked.id;
 
         const h = window.innerHeight || 800;
-        const durationMs = Math.floor(10000 + Math.random() * 3500);
+        const durationMs = Math.floor(12000 + Math.random() * 4000);
         const fontSizePx = Math.floor(64 + Math.random() * 24);
         const maxTop = Math.max(0, h - fontSizePx - 20);
         const topPx = Math.floor(Math.random() * Math.max(1, maxTop));
