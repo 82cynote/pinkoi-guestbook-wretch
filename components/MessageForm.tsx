@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { FormEvent, useMemo, useState } from 'react';
 
 type Props = {
   onSendMessage: (author: string, content: string) => Promise<void>;
@@ -9,13 +9,15 @@ export default function MessageForm({ onSendMessage }: Props) {
   const [content, setContent] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const authorLeft = useMemo(() => 20 - author.length, [author.length]);
   const contentLeft = useMemo(() => 50 - content.length, [content.length]);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setSuccess(false);
 
     const a = author.trim();
     const c = content.trim();
@@ -39,6 +41,10 @@ export default function MessageForm({ onSendMessage }: Props) {
       await onSendMessage(a, c);
       setAuthor('');
       setContent('');
+      setSuccess(true);
+      setTimeout(() => {
+        setSuccess(false);
+      }, 3000);
     } catch (err: any) {
       setError(err?.message || '送出失敗');
     } finally {
@@ -91,6 +97,7 @@ export default function MessageForm({ onSendMessage }: Props) {
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {success ? <p className="text-sm text-green-600">留言送出成功！</p> : null}
 
       <button
         type="submit"

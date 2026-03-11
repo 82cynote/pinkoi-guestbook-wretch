@@ -80,7 +80,17 @@ export default function App() {
   }, [lastSyncAt]);
 
   return (
-    <div className="min-h-screen py-10 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen py-10 px-4 sm:px-6 lg:px-8 relative">
+      <div
+        className="fixed inset-0 -z-10"
+        style={{
+          backgroundImage: 'url(/slides/bg.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          opacity: 0.3,
+        }}
+      />
       {isPlaying ? (
         <>
           {/* ✅ 滿版輪播 */}
